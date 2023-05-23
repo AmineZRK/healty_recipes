@@ -1,22 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomBar from "../components/BottomBar";
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
 
 export default function Profile() {
-  const [user, setUser] = useState({
-    name: "John Doe",
-    email: "doejohn@gmail.com",
-    password: "John123",
-    profileImage: require("../assets/img-profiles/avatar.jpg"),
-  });
-
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    // Get the current user's UID
+    const uid = firebase.auth().currentUser.uid;
+    
+    
+    // Retrieve the user document from Firestore
+    firebase.firestore().collection('users').doc(uid).get()
+      .then((doc) => {
+        if (doc.exists) {
+          console.log(doc.data())
+          // Set the user state with the retrieved data
+          setUser(doc.data());
+        } else {
+          console.log("User document not found");
+        }
+      })
+      .catch((error) => {
+        console.error("Error retrieving user document:", error);
+      });
+  }, []);
+  if (!user) {
+    // Display a loading state or placeholder while fetching the user data
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+ 
   return (
     <View style={styles.container}>
       <Image source={user.profileImage} style={styles.profileImage} />
-      <Text style={styles.name}>{user.name}</Text>
-      <Text style={styles.details}>EMAIL: {user.email}</Text>
-      <Text style={styles.details}>PASSWORD: {user.password}</Text>
+      <Text style={styles.name}>{user.Name}</Text>
+      <Text style={styles.details}>EMAIL: {user.Email}</Text>
       <TouchableOpacity style={styles.editButton}>
         <View style={styles.editButtonBackground}>
           <Ionicons name="pencil" size={24} color="white" />

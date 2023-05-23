@@ -14,6 +14,7 @@ import {
 // Import the functions you need from the SDKs you need
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
+import 'firebase/compat/firestore'; 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -44,7 +45,19 @@ const Signup = () => {
     firebase.auth().createUserWithEmailAndPassword(email, password)
     .then((userCredential) => {
       const user = userCredential.user;
-        console.log('Signup successful:', user);
+      firebase.firestore().collection('users').doc(user.uid).set({
+        Email: email,
+        Name: username,
+        Profile_Image: '',
+        Friends: [],
+        // Add other fields as needed
+      })
+      .then(() => {
+        console.log('User document created successfully');
+      })
+      .catch((error) => {
+        console.error('Error creating user document:', error);
+      });
     })
     .catch((error) => {
       const errorCode = error.code;

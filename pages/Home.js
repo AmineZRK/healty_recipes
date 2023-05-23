@@ -1,42 +1,55 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, ScrollView, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomBar from "../components/BottomBar";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
 
 const Home = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      user: {
-        name: 'John Doe',
-        profileImage: require('../assets/img-profiles/avatar.jpg'),
-      },
-      showCommentInput: false,
-      comment: '',
-      likes: 0,
-      isLiked: false,
-      date: '19/05/2023',
-      title: 'Salade fraiche',
-      description: "Ce recette est de base américaine, contenant de nombreux vitamines, elle participe à l'épanouissement de l'organisme quand elle est constament consommé.",
-      image: require('../assets/images/recettes-saines-et-legeres.jpg'),
-    },
-    {
-      id: 2,
-      user: {
-        name: 'Jane Smith',
-        profileImage: require('../assets/img-profiles/avatar.jpg'),
-      },
-      showCommentInput: false,
-      comment: '',
-      likes: 0,
-      isLiked: false,
-      date: '19/05/2023',
-      title: 'Trois recettes de poulet',
-      description: "Ce recette est de base américaine, contenant de nombreux vitamines, elle participe à l'épanouissement de l'organisme quand elle est constament consommé.",
-      image: require('../assets/images/trois-recettes-de-poulet.jpg'),
-    },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const snapshot = await firebase.firestore().collection('posts').get();
+      const fetchedPosts = [];
+      
+      for (const doc of snapshot.docs) {
+        const postData = doc.data();
+        const date = postData.date.toDate();
+        // Fetch user data based on the userId in the post document
+        const userSnapshot = await firebase.firestore().collection('users').doc(postData.user).get();
+        const userData = userSnapshot.data();
+        // Combine post data and user data into a single object
+        if (userData){
+          const post = {
+            id: doc.id,
+            ...postData,
+            date,
+            user: {
+              name: userData.Name,
+              profileImage: userData.Image,
+            },
+          };
+          fetchedPosts.push(post);
+        }else{
+          console.error('User data not found for post', doc.id);
+
+        }
+       
+  
+        
+      }
+  
+    }  catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+  };
 
   const handleCommentPress = (postId) => {
     setPosts((prevPosts) =>
@@ -61,7 +74,6 @@ const Home = () => {
   };
 
   const handleCommentSubmit = (postId) => {
-    // Ajoutez ici la logique pour soumettre le commentaire à votre backend
     console.log('Comment submitted for post', postId);
     setPosts((prevPosts) =>
       prevPosts.map((post) => {
@@ -84,21 +96,27 @@ const Home = () => {
       })
     );
   };
-  
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPosts();
+    setRefreshing(false);
+  };
+  console.log(posts)
   return (
     <SafeAreaView style={styles.container}>
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
       {posts.map((post) => (
         <View style={styles.card} key={post.id}>
           <View style={styles.userContainer}>
-            <Image source={post.user.profileImage} style={styles.profileImage} />
+            {/* <Image source={{uri: post.user.profileImage}} style={styles.profileImage} /> */}
             <Text style={styles.userName}>{post.user.name}</Text>
           </View>
-          <Image source={post.image} style={styles.image} />
+          <Image source={{ uri: post.imageURL }} style={styles.image} />
           <View style={styles.content}>
-            <Text style={styles.date}>Publié le {post.date}</Text>
+            <Text style={styles.date}>Publié le {post.date.toLocaleDateString()}</Text>
             <Text style={styles.title}>{post.title}</Text>
-            <Text style={styles.description}>{post.description}</Text>
+            <Text style={styles.description}>{post.content}</Text>
             <View style={styles.iconsContainer}>
               <TouchableOpacity onPress={() => handleCommentPress(post.id)}>
                 <Ionicons name="chatbubble-outline" size={24} color="gray" style={styles.icon} />

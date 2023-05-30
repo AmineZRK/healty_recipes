@@ -20,6 +20,7 @@ const Login = () => {
 const navigation = useNavigation();    
 const [email, setEmail] = useState("");
 const [Password, setPassword] = useState("");
+
 const auth = getAuth();
 
 const handleSignIn = () => {

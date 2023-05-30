@@ -9,7 +9,7 @@ import 'firebase/compat/firestore';
 const Home = () => {
   const [posts, setPosts] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-
+  const uid = firebase.auth().currentUser.uid;
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -25,6 +25,7 @@ const Home = () => {
         // Fetch user data based on the userId in the post document
         const userSnapshot = await firebase.firestore().collection('users').doc(postData.user).get();
         const userData = userSnapshot.data();
+        
         // Combine post data and user data into a single object
         if (userData){
           const post = {
@@ -33,10 +34,11 @@ const Home = () => {
             date,
             user: {
               name: userData.Name,
-              profileImage: userData.Image,
+              image: userData.Profile_Image
             },
           };
           fetchedPosts.push(post);
+          console.log(post)
         }else{
           console.error('User data not found for post', doc.id);
 
@@ -45,7 +47,7 @@ const Home = () => {
   
         
       }
-  
+      setPosts(fetchedPosts);
     }  catch (error) {
       console.error('Error fetching posts:', error);
     }
@@ -85,17 +87,52 @@ const Home = () => {
     );
   };
 
-  const handleLikePress = (postId) => {
+  const handleLikePress = async (postId, userId) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) => {
         if (post.id === postId) {
-          const updatedLikes = post.isLiked ? post.likes - 1 : post.likes + 1;
-          return { ...post, likes: updatedLikes, isLiked: !post.isLiked };
+          const likedBy = post.likedBy || []; // Default to an empty array if likedBy is undefined
+          const likedByCurrentUser = likedBy.includes(userId);
+          let updatedLikes = post.likes;
+          let updatedIsLiked = post.isLiked;
+          let updatedLikedBy = likedBy;
+  
+          if (likedByCurrentUser) {
+            // Remove the current user's ID from likedBy and decrease the likes count
+            updatedLikes = post.likes - 1;
+            updatedLikedBy = likedBy.filter((id) => id !== userId);
+          } else {
+            // Add the current user's ID to likedBy and increase the likes count
+            updatedLikes = post.likes + 1;
+            updatedLikedBy = [...likedBy, userId];
+          }
+  
+          firebase
+            .firestore()
+            .collection('posts')
+            .doc(postId)
+            .update({
+              likes: updatedLikes,
+              likedBy: updatedLikedBy
+            })
+            .then(() => {
+              console.log('Post updated successfully');
+            })
+            .catch((error) => {
+              console.error('Error updating post:', error);
+            });
+  
+          // Update the isLiked flag based on the updated likedBy array
+          updatedIsLiked = updatedLikedBy.includes(userId);
+  
+          // Return the updated post object
+          return { ...post, likes: updatedLikes, isLiked: updatedIsLiked, likedBy: updatedLikedBy };
         }
         return post;
       })
     );
   };
+  
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -109,10 +146,10 @@ const Home = () => {
       {posts.map((post) => (
         <View style={styles.card} key={post.id}>
           <View style={styles.userContainer}>
-            {/* <Image source={{uri: post.user.profileImage}} style={styles.profileImage} /> */}
+            <Image  source={post.user.image ? { uri: post.user.image } : require('../assets/img-profiles/avatar.jpg')} style={styles.profileImage} />
             <Text style={styles.userName}>{post.user.name}</Text>
           </View>
-          <Image source={{ uri: post.imageURL }} style={styles.image} />
+          <Image source={{uri : post.imageURL}} style={styles.image} />
           <View style={styles.content}>
             <Text style={styles.date}>Publié le {post.date.toLocaleDateString()}</Text>
             <Text style={styles.title}>{post.title}</Text>
@@ -122,8 +159,8 @@ const Home = () => {
                 <Ionicons name="chatbubble-outline" size={24} color="gray" style={styles.icon} />
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => handleLikePress(post.id)}>
-                <Ionicons
+              <TouchableOpacity onPress={() => handleLikePress(post.id,uid)}>
+                <Ionicons 
                   name={post.isLiked ? "heart" : "heart-outline"}
                   size={24}
                   color={post.isLiked ? "red" : "gray"}

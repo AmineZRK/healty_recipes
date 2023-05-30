@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, Image, StyleSheet, SafeAreaView } from 'react-native';
-import BottomBar from '../components/BottomBar';
+import { 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  Text, 
+  Image, 
+  StyleSheet,
+  SafeAreaView
+ } from 'react-native';
 import { useNavigation} from "@react-navigation/native";
+import { Ionicons } from '@expo/vector-icons';
+import BottomBar from '../components/BottomBar';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 import * as ImagePicker from 'expo-image-picker';
 
-const CreatePost = () => {
+const EditePhoto = () => {
   const navigation = useNavigation();
   const [image, setImage] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
 
-  const handleAddPost = async () => {
+  const handleEditePhoto = async () => {
     try {
       // Get the current user's UID
       const uid = firebase.auth().currentUser.uid;
@@ -34,7 +41,7 @@ const CreatePost = () => {
         const response = await fetch(imageUri);
         console.log(response)
         const blob = await response.blob();
-        const imageRef = storageRef.child(`images/${filename}`);
+        const imageRef = storageRef.child(`Profil/${filename}`);
         await imageRef.put(blob);
         
         // Get the URL of the uploaded image
@@ -42,25 +49,19 @@ const CreatePost = () => {
   
         // Create a new post object
         const post = {
-          user: uid,
-          title: title,
-          content: description,
-          imageURL: imageURL,
-          date: new Date(),
-          isLiked: false,
-          comments: [],
-          likes: 0,
+          
         };
   
-        // Add the post to Firestore
-        await firebase.firestore().collection('posts').add(post);
+        // Edit Photo
+        await firebase.firestore().collection('users').doc(uid).update({
+          Profile_Image: imageURL,
+        });
+       
   
-        navigation.navigate('Home');
+        console.log('Post added successfully');
   
         // Reset the input values
         setImage('');
-        setTitle('');
-        setDescription('');
       } else {
         console.log('Please select an image');
       }
@@ -93,34 +94,24 @@ const CreatePost = () => {
     }
   };
 
+
   return (
     <SafeAreaView style={styles.container}>
     <View style={styles.container}>
-      <View style={styles.navbar}>
-        {/* Contenu de votre barre de navigation */}
-        {/* <HeaderBar namePage={'CreatePost'} /> */}
-      </View>
-      <Text style={styles.title}>Créer une nouvelle recette</Text>
-      <View style={styles.formContainer}>
-      <TouchableOpacity style={styles.addButton} onPress={pickImage}>
-        <Text style={styles.buttonText}>Select Image</Text>
-      </TouchableOpacity>
-        <TextInput
-          style={styles.input}
-          placeholder="Titre"
-          value={title}
-          onChangeText={text => setTitle(text)}
-        />
-        <TextInput
-          style={[styles.input, styles.descriptionInput]}
-          placeholder="Description"
-          multiline
-          value={description}
-          onChangeText={(text) => setDescription(text)}
-        />
-        <TouchableOpacity style={styles.addButton} onPress={()=>handleAddPost()}>
-          <Text style={styles.buttonText}>Créer le post</Text>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton}>
+          <Ionicons  onPress={() => navigation.navigate('Profile')} name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
+        <Text style={styles.title}>Modifier votre photo</Text>
+      </View>
+      <View style={styles.formContainer}>
+          <TouchableOpacity style={styles.updateButton} onPress={pickImage}>
+            <Text style={styles.buttonText}>Select Image</Text>
+          </TouchableOpacity>
+          <Text></Text>
+          <TouchableOpacity style={styles.updateButton} onPress={()=>handleEditePhoto()}>
+            <Ionicons name="pencil" size={20} color="white" />
+          </TouchableOpacity>
       </View>
       <BottomBar namePage="CreatePost" />
     </View>
@@ -131,12 +122,15 @@ const CreatePost = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'column'
+    flexDirection: 'column',
+    paddingTop:10,
   },
-  navbar: {
-    backgroundColor: '#f5f5f5',
-    alignSelf: 'stretch',
-    paddingHorizontal: 0,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -146,7 +140,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     backgroundColor: '#FFF',
   },
   input: {
@@ -155,7 +149,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     padding: 10,
     marginBottom: 10,
-    marginTop: 10
   },
   descriptionInput: {
     height: 150, 
@@ -165,17 +158,16 @@ const styles = StyleSheet.create({
     height: 200,
     marginBottom: 0,
   },
-  addButton: {
+  updateButton: {
     backgroundColor: 'green',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 10,
     borderRadius: 4,
   },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
+  buttonText:{
+    color:'#FFF',
   },
 });
 
-export default CreatePost;
+export default EditePhoto;

@@ -83,7 +83,7 @@ function BottomBar(props) {
               <Ionicons name="people-outline" size={24} color="green" />
               <Text style={styles.modalItemText}>Ma liste d'amis</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalItem} onPress={() => navigation.navigate('Discover')}>
+            <TouchableOpacity style={styles.modalItem} onPress={() => navigation.navigate('NewFriendsDiscover')}>
               <Ionicons name="person-add-outline" size={24} color="green" />
               <Text style={styles.modalItemText}>Découvrir des personnes</Text>
             </TouchableOpacity>
